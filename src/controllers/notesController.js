@@ -3,8 +3,36 @@ import { Note } from '../models/note.js';
 
 export const getAllNotes = async (req, res, next) => {
   try {
-    const notes = await Note.find();
-    res.status(200).json(notes);
+    const { page = 1, perPage = 10, tag, search } = req.query;
+
+    const filter = {};
+
+    // Фільтрація за тегом
+    if (tag) {
+      filter.tag = tag;
+    }
+
+    // Текстовий пошук
+    if (search) {
+      filter.$text = { $search: search };
+    }
+
+    const skip = (page - 1) * perPage;
+    const totalNotes = await Note.countDocuments(filter);
+    const totalPages = Math.ceil(totalNotes / perPage);
+
+    const notes = await Note.find(filter)
+      .skip(skip)
+      .limit(Number(perPage))
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      page: Number(page),
+      perPage: Number(perPage),
+      totalNotes,
+      totalPages,
+      notes,
+    });
   } catch (error) {
     next(error);
   }

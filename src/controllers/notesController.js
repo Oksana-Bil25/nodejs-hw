@@ -5,30 +5,38 @@ export const getAllNotes = async (req, res, next) => {
   try {
     const { page = 1, perPage = 10, tag, search } = req.query;
 
-    const filter = {};
+    const limit = Number(perPage);
+    const skip = (Number(page) - 1) * limit;
 
-    // Фільтрація за тегом
+    // 1. Створюємо Query-об'єкти (Ланцюжок методів Mongoose)
+    const notesQuery = Note.find();
+    const countQuery = Note.find();
+
+    // Використовуємо .where() згідно з вимогами ментора
     if (tag) {
-      filter.tag = tag;
+      notesQuery.where('tag').equals(tag);
+      countQuery.where('tag').equals(tag);
     }
 
-    // Текстовий пошук
     if (search) {
-      filter.$text = { $search: search };
+      notesQuery.where({ $text: { $search: search } });
+      countQuery.where({ $text: { $search: search } });
     }
 
-    const skip = (page - 1) * perPage;
-    const totalNotes = await Note.countDocuments(filter);
-    const totalPages = Math.ceil(totalNotes / perPage);
+    // Додаємо пагінацію та сортування до основного запиту
+    notesQuery.skip(skip).limit(limit).sort({ createdAt: -1 });
 
-    const notes = await Note.find(filter)
-      .skip(skip)
-      .limit(Number(perPage))
-      .sort({ createdAt: -1 });
+    // 2. Використовуємо Promise.all для одночасного виконання обох запитів
+    const [notes, totalNotes] = await Promise.all([
+      notesQuery.exec(),
+      countQuery.countDocuments().exec(),
+    ]);
+
+    const totalPages = Math.ceil(totalNotes / limit);
 
     res.status(200).json({
       page: Number(page),
-      perPage: Number(perPage),
+      perPage: limit,
       totalNotes,
       totalPages,
       notes,

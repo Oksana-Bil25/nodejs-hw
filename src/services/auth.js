@@ -20,8 +20,8 @@ export const createSession = async userId => {
 export const setSessionCookies = (res, session) => {
   const cookieOptions = {
     httpOnly: true,
-    secure: false,
-    sameSite: 'lax',
+    secure: true,
+    sameSite: 'none',
   };
 
   res.cookie('accessToken', session.accessToken, {

@@ -4,41 +4,28 @@ import { saveFileToCloudinary } from '../utils/saveFileToCloudinary.js';
 
 export const updateUserAvatar = async (req, res, next) => {
   try {
-    // 1. Перевіряємо, чи був завантажений файл мідлварою multer
+    // 1. Перевіряємо, чи був завантажений файл
     if (!req.file) {
-      throw createHttpError(400, 'No file provided');
+      throw createHttpError(400, 'No file');
     }
 
-    // 2. Завантажуємо файл у Cloudinary (передаємо буфер файлу з пам'яті)
-    let uploadResult;
-    try {
-      uploadResult = await saveFileToCloudinary(req.file.buffer);
-    } catch {
-      throw createHttpError(500, 'Failed to upload image to Cloudinary');
-    }
+    // 2. Завантажуємо файл у Cloudinary
+    const uploadResult = await saveFileToCloudinary(req.file.buffer);
 
-    // 3. Отримуємо ID користувача. 
-    // ВАЖЛИВО: req.user з'являється завдяки мідлварі authenticate
-    const userId = req.user._id;
-
-    // 4. Оновлюємо поле avatar у базі даних MongoDB
+    // 3. Оновлюємо поле avatar у базі даних
     const updatedUser = await User.findByIdAndUpdate(
-      userId,
+      req.user._id,
       { avatar: uploadResult.secure_url },
-      { new: true }, // Повертати оновлений документ
+      { new: true },
     );
 
     if (!updatedUser) {
       throw createHttpError(404, 'User not found');
     }
 
-    // 5. Відправляємо відповідь з новим посиланням на аватар
+    // 4. Відправляємо відповідь - ТІЛЬКИ { url: ... }
     res.status(200).json({
-      status: 200,
-      message: 'Avatar updated successfully',
-      data: {
-        avatarUrl: updatedUser.avatar,
-      },
+      url: updatedUser.avatar,
     });
   } catch (error) {
     next(error);

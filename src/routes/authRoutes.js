@@ -22,6 +22,7 @@ router.post('/auth/login', celebrate(loginUserSchema), loginUser);
 router.post('/auth/refresh', refreshUserSession);
 router.post('/auth/logout', logoutUser);
 
+// ← ДОДАЙТЕ ЦІ ДВА РОУТИ:
 router.post(
   '/auth/request-reset-email',
   celebrate(requestResetEmailSchema),
